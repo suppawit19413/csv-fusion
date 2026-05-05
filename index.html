@@ -55,14 +55,38 @@
                     </div>
                 </div>
                 <div class="merge-settings">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="dedupe-check">
-                        <span class="checkmark"></span>
-                        ลบข้อมูลที่ ID ซ้ำกัน (Deduplicate)
-                    </label>
-                    <div id="id-col-selector" class="hidden">
-                        <span>เลือกคอลัมน์ ID:</span>
-                        <select id="id-column"></select>
+                    <div class="setting-group">
+                        <label>โหมดการรวม (Merge Mode):</label>
+                        <div class="radio-group">
+                            <label class="radio-item">
+                                <input type="radio" name="merge-mode" value="append" checked>
+                                <span>ต่อท้าย (Append/Stack)</span>
+                            </label>
+                            <label class="radio-item">
+                                <input type="radio" name="merge-mode" value="ensemble">
+                                <span>หาค่าเฉลี่ย (Ensemble/Average)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="dedupe-check" checked>
+                            <span class="checkmark"></span>
+                            ลบข้อมูลที่ ID ซ้ำกัน (Deduplicate)
+                        </label>
+                        <div id="id-col-selector">
+                            <span>คอลัมน์ ID:</span>
+                            <select id="id-column"></select>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="sort-check" checked>
+                            <span class="checkmark"></span>
+                            จัดเรียงตาม ID (Auto Sort)
+                        </label>
                     </div>
                 </div>
                 <div class="action-bar">
