@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Fusion | Kaggle Data Merger</title>
+    <meta name="description" content="เครื่องมือรวมไฟล์ CSV ระดับพรีเมียมสำหรับการแข่ง Kaggle - รวดเร็ว ปลอดภัย และทำงานบนเบราว์เซอร์ของคุณ 100%">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PapaParse for robust CSV handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="container">
+        <header class="glass-card header-section">
+            <div class="logo">
+                <i data-lucide="layers" class="icon-logo"></i>
+                <h1>CSV <span>Fusion</span></h1>
+            </div>
+            <p class="subtitle">รวมไฟล์ข้อมูลสำหรับการแข่ง Kaggle ของคุณอย่างรวดเร็วและแม่นยำ</p>
+        </header>
+
+        <section class="fusion-workspace">
+            <div class="upload-zone glass-card" id="drop-zone">
+                <input type="file" id="file-input" multiple accept=".csv" hidden>
+                <div class="upload-content">
+                    <div class="icon-circle">
+                        <i data-lucide="upload-cloud" class="icon-upload"></i>
+                    </div>
+                    <h2>ลากไฟล์มาวางที่นี่</h2>
+                    <p>หรือคลิกเพื่อเลือกไฟล์ CSV หลายไฟล์</p>
+                    <span class="badge">รองรับเฉพาะ .csv</span>
+                </div>
+            </div>
+
+            <div class="file-manager glass-card">
+                <div class="manager-header">
+                    <h3><i data-lucide="list"></i> ไฟล์ที่เลือก (<span id="file-count">0</span>)</h3>
+                    <button id="clear-all" class="btn-text" title="ล้างทั้งหมด">ล้างทั้งหมด</button>
+                </div>
+                <div id="file-list" class="file-list-container">
+                    <div class="empty-state">
+                        <p>ยังไม่มีไฟล์ที่ถูกเลือก</p>
+                    </div>
+                </div>
+                <div class="action-bar">
+                    <button id="merge-btn" class="btn-primary" disabled>
+                        <i data-lucide="zap"></i> รวมร่างไฟล์ทั้งหมด
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="preview-section" class="glass-card preview-card hidden">
+            <div class="preview-header">
+                <h3><i data-lucide="eye"></i> ตัวอย่างข้อมูล (10 แถวแรก)</h3>
+                <span id="preview-info" class="preview-info"></span>
+            </div>
+            <div class="table-wrapper">
+                <table id="data-preview"></table>
+            </div>
+            <div class="download-footer">
+                <button id="download-btn" class="btn-success">
+                    <i data-lucide="download"></i> ดาวน์โหลดไฟล์ที่รวมแล้ว (.csv)
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2024 CSV Fusion - Built for Data Scientists</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
