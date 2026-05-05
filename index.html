@@ -54,6 +54,17 @@
                         <p>ยังไม่มีไฟล์ที่ถูกเลือก</p>
                     </div>
                 </div>
+                <div class="merge-settings">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="dedupe-check">
+                        <span class="checkmark"></span>
+                        ลบข้อมูลที่ ID ซ้ำกัน (Deduplicate)
+                    </label>
+                    <div id="id-col-selector" class="hidden">
+                        <span>เลือกคอลัมน์ ID:</span>
+                        <select id="id-column"></select>
+                    </div>
+                </div>
                 <div class="action-bar">
                     <button id="merge-btn" class="btn-primary" disabled>
                         <i data-lucide="zap"></i> รวมร่างไฟล์ทั้งหมด
