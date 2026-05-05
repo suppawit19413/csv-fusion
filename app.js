@@ -151,37 +151,44 @@ document.addEventListener('DOMContentLoaded', () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     }
 
+    const fillNullCheck = document.getElementById('fill-null-check');
+    const fillNullValue = document.getElementById('fill-null-value');
+
     // --- Advanced Processing Logic ---
 
     mergeBtn.addEventListener('click', async () => {
         mergeBtn.disabled = true;
-        mergeBtn.innerHTML = `<i data-lucide="loader" class="spin"></i> กำลังตรวจสอบข้อมูล...`;
+        mergeBtn.innerHTML = `<i data-lucide="loader" class="spin"></i> กำลังล้างข้อมูล...`;
         lucide.createIcons();
 
         try {
             const allResults = await Promise.all(uploadedFiles.map(parseCSV));
             const idCol = idColumnSelect.value;
             const mode = document.querySelector('input[name="merge-mode"]:checked').value;
+            const nullVal = fillNullValue.value || "0";
 
             let processedData = [];
 
-            // 1. Normalize and Clean Data
+            // 1. Union of all headers to prevent missing columns
+            const allHeaders = [...new Set(allResults.flatMap(res => res.meta.fields.map(f => f.trim())))];
+
+            // 2. Normalize and Clean Data
             const cleanedResults = allResults.map(res => {
-                // Normalize headers (trim and handle casing if needed, but we keep original for CSV structure)
                 return res.data.map(row => {
                     const cleanedRow = {};
-                    Object.keys(row).forEach(key => {
-                        const trimmedKey = key.trim();
-                        let val = row[key];
-                        // Trim strings
+                    allHeaders.forEach(header => {
+                        let val = row[header];
+                        if (val === undefined || val === null || val === "") {
+                            val = fillNullCheck.checked ? nullVal : "";
+                        }
                         if (typeof val === 'string') val = val.trim();
-                        cleanedRow[trimmedKey] = val;
+                        cleanedRow[header] = val;
                     });
                     return cleanedRow;
                 });
             });
 
-            // 2. Merge Processing
+            // 3. Merge Processing
             if (mode === 'append') {
                 cleanedResults.forEach(data => {
                     processedData = processedData.concat(data);
@@ -190,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dedupeCheck.checked) {
                     const seen = new Set();
                     const unique = [];
-                    // Keep Last logic
                     for (let i = processedData.length - 1; i >= 0; i--) {
                         const idValue = String(processedData[i][idCol] || '').toLowerCase();
                         if (!seen.has(idValue)) {
@@ -202,8 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (mode === 'ensemble') {
                 const groups = new Map();
-                const allFields = [...new Set(cleanedResults.flatMap(data => data.length > 0 ? Object.keys(data[0]) : []))];
-                const numericCols = allFields.filter(f => f !== idCol);
+                const numericCols = allHeaders.filter(f => f !== idCol);
 
                 cleanedResults.forEach(data => {
                     data.forEach(row => {
@@ -214,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 groups.forEach((rows, id) => {
-                    const averagedRow = { [idCol]: rows[0][idCol] }; // Keep original casing of ID
+                    const averagedRow = { [idCol]: rows[0][idCol] };
                     numericCols.forEach(col => {
                         let sum = 0, count = 0;
                         rows.forEach(r => {
@@ -222,13 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (!isNaN(val)) { sum += val; count++; }
                         });
                         if (count > 0) averagedRow[col] = (sum / count).toString();
-                        else if (rows[0][col] !== undefined) averagedRow[col] = rows[0][col];
+                        else averagedRow[col] = fillNullCheck.checked ? nullVal : (rows[0][col] || "");
                     });
                     processedData.push(averagedRow);
                 });
             }
 
-            // 3. Auto Sort
+            // 4. Auto Sort
             if (sortCheck.checked) {
                 processedData.sort((a, b) => {
                     const valA = isNaN(a[idCol]) ? String(a[idCol]) : parseFloat(a[idCol]);
@@ -241,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showPreview(mergedData);
         } catch (err) {
             console.error(err);
-            alert('❌ เกิดข้อผิดพลาด: ' + err.message + '\n\nคำแนะนำ: ตรวจสอบว่าไฟล์ทุกไฟล์มีคอลัมน์ ID ชื่อเดียวกันหรือไม่');
+            alert('❌ เกิดข้อผิดพลาด: ' + err.message);
         } finally {
             mergeBtn.disabled = false;
             mergeBtn.innerHTML = `<i data-lucide="zap"></i> รวมร่างไฟล์ทั้งหมด`;
