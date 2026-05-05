@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('download-btn');
 
     const dedupeCheck = document.getElementById('dedupe-check');
+    const sortCheck = document.getElementById('sort-check');
     const idColSelector = document.getElementById('id-col-selector');
     const idColumnSelect = document.getElementById('id-column');
 
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function updateIdColumns(headers) {
+        const currentVal = idColumnSelect.value;
         idColumnSelect.innerHTML = '';
         headers.forEach(h => {
             const opt = document.createElement('option');
@@ -48,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             idColumnSelect.appendChild(opt);
         });
+        if (currentVal && headers.includes(currentVal)) idColumnSelect.value = currentVal;
     }
 
     dropZone.addEventListener('click', () => fileInput.click());
@@ -152,49 +155,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mergeBtn.addEventListener('click', async () => {
         mergeBtn.disabled = true;
-        mergeBtn.innerHTML = `<i data-lucide="loader" class="spin"></i> กำลังรวมร่าง...`;
+        mergeBtn.innerHTML = `<i data-lucide="loader" class="spin"></i> กำลังประมวลผล...`;
         lucide.createIcons();
 
         try {
             const allResults = await Promise.all(uploadedFiles.map(parseCSV));
-            
-            // Update ID columns list based on the first file
-            if (allResults.length > 0) {
-                updateIdColumns(allResults[0].meta.fields);
-            }
+            const idCol = idColumnSelect.value;
+            const mode = document.querySelector('input[name="merge-mode"]:checked').value;
 
-            // Combine data
-            let combined = [];
-            allResults.forEach(res => {
-                combined = combined.concat(res.data);
-            });
+            // Update columns if not set
+            if (allResults.length > 0) updateIdColumns(allResults[0].meta.fields);
 
-            // Handle Deduplication
-            if (dedupeCheck.checked) {
-                const idCol = idColumnSelect.value;
-                const seen = new Set();
-                const unique = [];
-                
-                // Process in reverse to "keep last" or forward for "keep first"
-                // Usually for Kaggle, keep last is safer if newer files are better
-                // But Kaggle just cares about ONE prediction per ID.
-                // Let's keep last occurrence (processed in reverse)
-                for (let i = combined.length - 1; i >= 0; i--) {
-                    const row = combined[i];
-                    const idValue = row[idCol];
-                    if (!seen.has(idValue)) {
-                        seen.add(idValue);
-                        unique.push(row);
+            let processedData = [];
+
+            if (mode === 'append') {
+                // Stack everything
+                allResults.forEach(res => {
+                    processedData = processedData.concat(res.data);
+                });
+
+                if (dedupeCheck.checked) {
+                    const seen = new Set();
+                    const unique = [];
+                    for (let i = processedData.length - 1; i >= 0; i--) {
+                        const row = processedData[i];
+                        if (!seen.has(row[idCol])) {
+                            seen.add(row[idCol]);
+                            unique.push(row);
+                        }
                     }
+                    processedData = unique.reverse();
                 }
-                combined = unique.reverse(); // Restore original order
+            } else if (mode === 'ensemble') {
+                // Group by ID and average numeric columns
+                const groups = new Map();
+                const numericCols = allResults[0].meta.fields.filter(f => f !== idCol);
+
+                allResults.forEach(res => {
+                    res.data.forEach(row => {
+                        const id = row[idCol];
+                        if (!groups.has(id)) {
+                            groups.set(id, []);
+                        }
+                        groups.get(id).push(row);
+                    });
+                });
+
+                groups.forEach((rows, id) => {
+                    const averagedRow = { [idCol]: id };
+                    numericCols.forEach(col => {
+                        let sum = 0;
+                        let count = 0;
+                        rows.forEach(r => {
+                            const val = parseFloat(r[col]);
+                            if (!isNaN(val)) {
+                                sum += val;
+                                count++;
+                            }
+                        });
+                        averagedRow[col] = count > 0 ? (sum / count).toString() : rows[0][col];
+                    });
+                    processedData.push(averagedRow);
+                });
             }
 
-            mergedData = combined;
+            // Auto Sort
+            if (sortCheck.checked) {
+                processedData.sort((a, b) => {
+                    const valA = isNaN(a[idCol]) ? a[idCol] : parseFloat(a[idCol]);
+                    const valB = isNaN(b[idCol]) ? b[idCol] : parseFloat(b[idCol]);
+                    return valA > valB ? 1 : -1;
+                });
+            }
+
+            mergedData = processedData;
             showPreview(mergedData);
         } catch (err) {
             console.error(err);
-            alert('เกิดข้อผิดพลาดในการรวมไฟล์: ' + err.message);
+            alert('เกิดข้อผิดพลาด: ' + err.message);
         } finally {
             mergeBtn.disabled = false;
             mergeBtn.innerHTML = `<i data-lucide="zap"></i> รวมร่างไฟล์ทั้งหมด`;
