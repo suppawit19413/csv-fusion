@@ -18,10 +18,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewInfo = document.getElementById('preview-info');
     const downloadBtn = document.getElementById('download-btn');
 
+    const dedupeCheck = document.getElementById('dedupe-check');
+    const idColSelector = document.getElementById('id-col-selector');
+    const idColumnSelect = document.getElementById('id-column');
+
     let uploadedFiles = []; // Array of File objects
     let mergedData = null; // Result of the merge
 
     // --- File Input Handlers ---
+
+    dedupeCheck.addEventListener('change', () => {
+        if (dedupeCheck.checked) {
+            idColSelector.classList.remove('hidden');
+        } else {
+            idColSelector.classList.add('hidden');
+        }
+    });
+
+    function updateIdColumns(headers) {
+        idColumnSelect.innerHTML = '';
+        headers.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h;
+            opt.textContent = h;
+            // Auto-select common ID names
+            const lowerH = h.toLowerCase();
+            if (['id', 'row_id', 'passengerid', 'guid'].includes(lowerH)) {
+                opt.selected = true;
+            }
+            idColumnSelect.appendChild(opt);
+        });
+    }
 
     dropZone.addEventListener('click', () => fileInput.click());
 
@@ -131,13 +158,37 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const allResults = await Promise.all(uploadedFiles.map(parseCSV));
             
+            // Update ID columns list based on the first file
+            if (allResults.length > 0) {
+                updateIdColumns(allResults[0].meta.fields);
+            }
+
             // Combine data
-            // We use the headers from the first file as the base
-            // If files have different headers, we'll try to align them
             let combined = [];
             allResults.forEach(res => {
                 combined = combined.concat(res.data);
             });
+
+            // Handle Deduplication
+            if (dedupeCheck.checked) {
+                const idCol = idColumnSelect.value;
+                const seen = new Set();
+                const unique = [];
+                
+                // Process in reverse to "keep last" or forward for "keep first"
+                // Usually for Kaggle, keep last is safer if newer files are better
+                // But Kaggle just cares about ONE prediction per ID.
+                // Let's keep last occurrence (processed in reverse)
+                for (let i = combined.length - 1; i >= 0; i--) {
+                    const row = combined[i];
+                    const idValue = row[idCol];
+                    if (!seen.has(idValue)) {
+                        seen.add(idValue);
+                        unique.push(row);
+                    }
+                }
+                combined = unique.reverse(); // Restore original order
+            }
 
             mergedData = combined;
             showPreview(mergedData);
